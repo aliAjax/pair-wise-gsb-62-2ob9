@@ -9,7 +9,7 @@ import { MatTableModule } from '@angular/material/table'
 import { Store } from '@ngrx/store'
 import type { Anomaly, DispositionPlan, ExpertOpinion, FieldReview } from '../domain'
 import { TailingsActions } from '../store/tailings.actions'
-import { selectAnomalies, selectFilteredAnomalies, selectSelectedAnomaly, selectTailings } from '../store/tailings.selectors'
+import { selectAnomalies, selectFilteredAnomalies, selectSelectedAnomaly, selectSelectedAnomalyCoverage, selectTailings } from '../store/tailings.selectors'
 
 @Component({
   selector: 'app-anomaly-page',
@@ -35,6 +35,11 @@ import { selectAnomalies, selectFilteredAnomalies, selectSelectedAnomaly, select
         </table>
         <div class="panel detail" *ngIf="selected$ | async as selected">
           <div class="detail-head"><div><span>{{ selected.id }} · V{{ selected.version }}</span><h2>{{ selected.title }}</h2><p>{{ selected.observedValue }}</p></div><span class="severity" [class.major]="selected.severity === '重大'">{{ selected.severity }}</span></div>
+          <div class="coverage-line" *ngIf="coverage$ | async as coverage">
+            <b>{{ coverage.tourName }}覆盖范围</b>
+            <span>{{ coverage.completedPoints }}/{{ coverage.totalPoints }} 已完成 · 待巡检 {{ coverage.pendingPoints }} · 绕行待接管 {{ coverage.detourPendingPoints }} · 冲突 {{ coverage.conflictPointIds.length }}</span>
+            <div class="mini-segments"><small *ngFor="let segment of coverage.bySegment" [class.detour]="segment.kind === '绕行段'">{{ segment.segmentName }} {{ segment.completed }}/{{ segment.total }}</small></div>
+          </div>
           <h3>现场复核</h3>
           <div class="review-form"><mat-form-field appearance="outline" class="wide"><mat-label>现场观察</mat-label><textarea matInput rows="2" [(ngModel)]="fieldForm.observed"></textarea></mat-form-field><mat-form-field appearance="outline"><mat-label>证据清单</mat-label><input matInput [(ngModel)]="fieldForm.evidence" /></mat-form-field><mat-form-field appearance="outline"><mat-label>重新评估</mat-label><input matInput [(ngModel)]="fieldForm.reassessment" /></mat-form-field><button mat-flat-button color="primary" (click)="submitReview(selected)">提交复核版本</button></div>
           <div class="records" *ngFor="let review of selected.fieldReviews"><b>{{ review.inspector }} · V{{ review.version }}</b><p>{{ review.observed }}</p><span>{{ review.reassessment }} · {{ review.evidence }}</span></div>
@@ -52,6 +57,7 @@ import { selectAnomalies, selectFilteredAnomalies, selectSelectedAnomaly, select
     .page { padding: 22px 28px 45px; }.metrics { display: grid; grid-template-columns: repeat(4, 1fr); background: white; border: 1px solid #d9e1df; margin-bottom: 14px; }.metrics article { padding: 16px 18px; border-right: 1px solid #e2e7e6; }.metrics article:last-child { border: 0; }.metrics span, .metrics strong, .metrics small { display: block; }.metrics span { color: #72807d; font-size: 12px; }.metrics strong { font-size: 26px; color: #245060; margin: 6px 0; }.metrics small { color: #98a4a0; font-size: 10px; }
     .toolbar { display: flex; gap: 10px; margin-bottom: 10px; }.split { display: grid; grid-template-columns: minmax(600px,1fr) 520px; gap: 14px; align-items: start; }.panel { background: white; border: 1px solid #d9e1df; } table { width: 100%; }.selected { background: #eef5f4; }.sub { display: block; color: #7c8986; font-size: 10px; margin-top: 3px; }.severity { padding: 3px 7px; border-radius: 3px; background: #f7edd6; color: #8e681d; font-size: 11px; }.severity.major { background: #fae7e5; color: #a23b34; }
     .detail { padding: 16px; }.detail-head { display: flex; justify-content: space-between; align-items: start; border-bottom: 1px solid #e1e6e5; padding-bottom: 12px; }.detail-head span { color: #74827f; font-size: 10px; }.detail-head h2 { margin: 4px 0; font-size: 18px; }.detail-head p { margin: 0; color: #65736f; font-size: 12px; }.detail h3 { font-size: 13px; margin: 16px 0 8px; }
+    .coverage-line { background: #f3f7f9; border-left: 3px solid #315d6e; padding: 9px 11px; margin-top: 12px; display: grid; gap: 4px; }.coverage-line b { font-size: 12px; color: #245060; }.coverage-line > span { color: #5f6d6a; font-size: 10px; }.mini-segments { display: flex; flex-wrap: wrap; gap: 6px; }.mini-segments small { font-size: 10px; color: #315d6e; background: #e7eef2; padding: 2px 7px; border-radius: 3px; }.mini-segments small.detour { background: #f8efd9; color: #936d20; }
     .review-form, .opinion-form, .plan-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.review-form .wide, .opinion-form .wide, .plan-form .wide { grid-column: 1 / -1; }.review-form button, .plan-form button { align-self: center; }.records { border-left: 3px solid #315d6e; background: #f5f8f7; padding: 9px; margin-top: 7px; display: grid; gap: 4px; }.records p { margin: 0; font-size: 12px; }.records span { color: #72807d; font-size: 10px; }
     .opinions article { border-bottom: 1px solid #e2e7e6; padding: 9px 0; display: grid; grid-template-columns: 1fr auto; gap: 4px; }.opinions p { grid-column: 1 / -1; margin: 0; font-size: 12px; }.opinions span { color: #8a6720; font-size: 10px; }
     .approval-band { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 7px; background: #f6f0df; border-left: 3px solid #c99f3d; padding: 10px; margin-top: 12px; }.approval-band b, .approval-band span { display: block; }.approval-band span { color: #746c55; font-size: 10px; margin-top: 4px; }
@@ -61,6 +67,7 @@ export class AnomalyPageComponent {
   private readonly store = inject(Store)
   readonly filtered$ = this.store.select(selectFilteredAnomalies)
   readonly selected$ = this.store.select(selectSelectedAnomaly)
+  readonly coverage$ = this.store.select(selectSelectedAnomalyCoverage)
   readonly all$ = this.store.select(selectAnomalies)
   readonly columns = ['title', 'severity', 'status', 'version', 'open']
   readonly statuses: Anomaly['status'][] = ['待现场复核', '原因调查中', '待负责人审批', '应急联动', '已关闭']

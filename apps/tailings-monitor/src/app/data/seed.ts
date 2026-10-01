@@ -1,4 +1,6 @@
-import type { TailingsDataset } from '../domain'
+import type { FloodTour, TailingsDataset } from '../domain'
+
+const tourId = 'FT-260929-D'
 
 export const seedDataset: TailingsDataset = {
   points: [
@@ -22,7 +24,7 @@ export const seedDataset: TailingsDataset = {
   ],
   anomalies: [
     {
-      id: 'AN-260929-01', pointId: 'P-D01', title: '主坝D01累计位移超过报警阈值', severity: '重大', status: '待负责人审批', openedAt: '2026-09-29T08:25:00', owner: '坝体安全组', triggerReadingId: 'RD-1', observedValue: '18.7 mm，昨日变化4.2 mm/d', version: 7, closedAt: '',
+      id: 'AN-260929-01', pointId: 'P-D01', tourId, title: '主坝D01累计位移超过报警阈值', severity: '重大', status: '待负责人审批', openedAt: '2026-09-29T08:25:00', owner: '坝体安全组', triggerReadingId: 'RD-1', observedValue: '18.7 mm，昨日变化4.2 mm/d', version: 7, closedAt: '',
       fieldReviews: [{ id: 'FR-1', inspector: '宋立', arrivedAt: '2026-09-29T09:10:00', observed: '坝顶排水沟未见明显开裂，D01附近无新增裂缝，基准点稳定。', evidence: 'D01近景照片、基准点复核记录、GNSS原始观测文件', reassessment: '读数有效，位移趋势仍上升，建议立即降低库水位并加密监测。', version: 2 }],
       opinions: [
         { id: 'OP-1', specialist: '周岩', discipline: '岩土', content: '近三日位移速率持续高于阈值，需结合孔隙水压力分析潜在滑面。', conclusion: '支持结论', createdAt: '2026-09-29T10:20:00' },
@@ -31,14 +33,52 @@ export const seedDataset: TailingsDataset = {
       plan: { id: 'PL-1', action: '降低库水位', owner: '库区调度班', deadline: '2026-09-29T18:00:00', conditions: '每2小时复测D01、D02和W01；位移速率恢复至3mm/d以下并稳定12小时后，负责人可关闭异常。', emergencyLinked: true, approvedBy: '', approvedAt: '' }
     },
     {
-      id: 'AN-260929-02', pointId: 'P-W01', title: '库水位短时上升速率超预警值', severity: '较高', status: '原因调查中', openedAt: '2026-09-29T08:00:00', owner: '库区调度班', triggerReadingId: 'RD-4', observedValue: '873.4 m，1小时上升0.6 m', version: 4, closedAt: '',
+      id: 'AN-260929-02', pointId: 'P-W01', tourId, title: '库水位短时上升速率超预警值', severity: '较高', status: '原因调查中', openedAt: '2026-09-29T08:00:00', owner: '库区调度班', triggerReadingId: 'RD-4', observedValue: '873.4 m，1小时上升0.6 m', version: 4, closedAt: '',
       fieldReviews: [], opinions: [{ id: 'OP-3', specialist: '许洁', discipline: '水文', content: '上游降雨汇流导致入湖量增加，需核实泄洪闸状态。', conclusion: '支持结论', createdAt: '2026-09-29T09:00:00' }],
       plan: { id: 'PL-2', action: '加密监测', owner: '库区调度班', deadline: '2026-09-29T14:00:00', conditions: '每小时记录水位与入库流量，达到874.0m时启动应急联动。', emergencyLinked: false, approvedBy: '', approvedAt: '' }
     }
   ],
+  tours: [buildDayTour(tourId)],
+  importLog: [],
   audit: [
     { id: 'A-1', entityId: 'P-D01', action: '生成异常', operator: '阈值引擎', detail: '累计位移18.7mm超过报警阈值16mm', createdAt: '2026-09-29T08:25:00' },
     { id: 'A-2', entityId: 'AN-260929-01', action: '提交现场复核', operator: '宋立', detail: '原始读数有效，位移趋势仍上升', createdAt: '2026-09-29T09:25:00' },
     { id: 'A-3', entityId: 'AN-260929-01', action: '补充专业意见', operator: '周岩', detail: '建议结合孔隙水压力分析潜在滑面', createdAt: '2026-09-29T10:20:00' }
   ]
+}
+
+/** 9月29日白班汛期巡检：暴雨封掉坝顶联络路时的进行中状态 */
+function buildDayTour(id: string): FloodTour {
+  const segments = [
+    { id: 'SG-MAIN', tourId: id, name: '主坝巡检段', kind: '计划段' as const },
+    { id: 'SG-LAKE', tourId: id, name: '库区巡检段', kind: '计划段' as const }
+  ]
+  const planned: Record<string, string> = { 'P-D01': 'SG-MAIN', 'P-D02': 'SG-MAIN', 'P-W01': 'SG-LAKE', 'P-S01': 'SG-MAIN', 'P-R01': 'SG-LAKE' }
+  const pointIds = Object.keys(planned)
+  return {
+    id,
+    name: '9月29日白班汛期巡检',
+    season: '2026汛期',
+    status: '进行中',
+    startedAt: '2026-09-29T07:30:00',
+    expectedPointIds: pointIds,
+    segments,
+    assignments: pointIds.map((pointId) => ({
+      pointId,
+      tourId: id,
+      plannedSegmentId: planned[pointId],
+      status: '正常' as const,
+      current: { version: 1, segmentId: planned[pointId], basis: '计划段' as const, editedBy: '值班调度', editedAt: '2026-09-29T07:30:00', reason: '按汛期巡检计划派线' },
+      history: []
+    })),
+    // D01 在封路前已按原计划完成并上传现场复核，任何改线都不得再影响它
+    completions: [
+      { pointId: 'P-D01', tourId: id, segmentId: 'SG-MAIN', completedAt: '2026-09-29T08:40:00', inspector: '宋立', note: '坝顶联络路封闭前已完成现场复核' }
+    ],
+    conflicts: [],
+    blockages: [
+      { id: 'BLK-1', tourId: id, segmentIds: ['SG-MAIN', 'SG-LAKE'], reason: '暴雨封掉坝顶联络路', startedAt: '2026-09-29T08:45:00', liftedAt: '' }
+    ],
+    importedPackages: []
+  }
 }

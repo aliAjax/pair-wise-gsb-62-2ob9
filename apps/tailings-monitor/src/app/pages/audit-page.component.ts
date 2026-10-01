@@ -40,7 +40,8 @@ export class AuditPageComponent {
   readonly filtered$ = this.store.select(selectDataset).pipe(map((dataset) => dataset.audit.filter((item) => !this.keyword || `${item.entityId} ${item.action} ${item.operator} ${item.detail}`.includes(this.keyword))))
   exportPackage(): void {
     this.store.select(selectDataset).subscribe((dataset) => {
-      this.api.exportPackage(dataset).subscribe((blob) => {
+      const envelope = this.api.buildEnvelope(dataset)
+      this.api.exportPackage(envelope).subscribe((blob) => {
         const url = URL.createObjectURL(blob)
         const anchor = document.createElement('a'); anchor.href = url; anchor.download = '尾矿库监测审阅包.json'; anchor.click(); URL.revokeObjectURL(url)
       })
