@@ -1,5 +1,13 @@
 import { createActionGroup, emptyProps, props } from '@ngrx/store'
-import type { AuditEntry, DispositionPlan, ExpertOpinion, FieldReview, TailingsDataset } from '../domain'
+import type {
+  AssignmentConflictChoice,
+  AuditEntry,
+  DispositionPlan,
+  ExpertOpinion,
+  FieldReview,
+  OfflineSyncPackage,
+  TailingsDataset
+} from '../domain'
 
 export const TailingsActions = createActionGroup({
   source: 'Tailings',
@@ -7,6 +15,10 @@ export const TailingsActions = createActionGroup({
     'Load Dataset': emptyProps(),
     'Load Dataset Success': props<{ dataset: TailingsDataset }>(),
     'Load Dataset Failure': props<{ error: string }>(),
+    'Apply Dam Top Closure': props<{ shiftId: string; operator: string }>(),
+    'Restore Dam Top Road': props<{ shiftId: string; operator: string }>(),
+    'Import Offline Package': props<{ syncPackage: OfflineSyncPackage }>(),
+    'Resolve Assignment Conflict': props<{ conflictId: string; choice: AssignmentConflictChoice; operator: string }>(),
     'Submit Field Review': props<{ anomalyId: string; review: FieldReview }>(),
     'Add Expert Opinion': props<{ anomalyId: string; opinion: ExpertOpinion }>(),
     'Save Disposition Plan': props<{ anomalyId: string; plan: DispositionPlan }>(),
@@ -17,6 +29,7 @@ export const TailingsActions = createActionGroup({
     'Update Keyword': props<{ keyword: string }>(),
     'Update Status': props<{ status: string }>(),
     'Add Audit': props<{ entry: AuditEntry }>(),
+    'Clear Inspection Error': emptyProps(),
     'Reset Demo': emptyProps()
   }
 })

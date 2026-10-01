@@ -19,6 +19,7 @@ import { TailingsActions } from './store/tailings.actions'
         <nav>
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"><span>监测总览</span><small>地图与阈值</small></a>
           <a routerLink="/monitoring" routerLinkActive="active"><span>测点与读数</span><small>原始数据</small></a>
+          <a routerLink="/inspection" routerLinkActive="active"><span>巡检路线</span><small>封路与离线合并</small></a>
           <a routerLink="/anomalies" routerLinkActive="active"><span>异常处置</span><small>复核与会签</small></a>
           <a routerLink="/audit" routerLinkActive="active"><span>审计追溯</span><small>历史版本</small></a>
         </nav>

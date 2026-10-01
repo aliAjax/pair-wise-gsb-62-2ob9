@@ -36,6 +36,27 @@ export const seedDataset: TailingsDataset = {
       plan: { id: 'PL-2', action: '加密监测', owner: '库区调度班', deadline: '2026-09-29T14:00:00', conditions: '每小时记录水位与入库流量，达到874.0m时启动应急联动。', emergencyLinked: false, approvedBy: '', approvedAt: '' }
     }
   ],
+  inspection: {
+    shifts: [
+      { id: 'SH-261001', name: '2026-10-01汛期巡检', date: '2026-10-01', status: '进行中', damTopRoadClosed: false, routeRevision: 1, lastPackageId: '' }
+    ],
+    segments: [
+      { id: 'RS-MAIN', name: '主坝原计划线', zone: '主坝', kind: '原计划', active: true, order: 1 },
+      { id: 'RS-LAKE', name: '库区原计划线', zone: '库区', kind: '原计划', active: true, order: 2 },
+      { id: 'RS-MAIN-BYPASS', name: '主坝下游绕行线', zone: '主坝', kind: '绕行', active: false, order: 3 },
+      { id: 'RS-LAKE-BYPASS', name: '库区北岸绕行线', zone: '库区', kind: '绕行', active: false, order: 4 },
+      { id: 'RS-EMERGENCY', name: '应急备用联络线', zone: '主坝', kind: '绕行', active: false, order: 5 }
+    ],
+    assignments: [
+      { id: 'IA-D01', shiftId: 'SH-261001', pointId: 'P-D01', segmentId: 'RS-MAIN', originalSegmentId: 'RS-MAIN', status: '已完成', completedAt: '2026-10-01T08:20:00', revision: 1, changedBy: '巡检班长', changedAt: '2026-10-01T07:30:00' },
+      { id: 'IA-D02', shiftId: 'SH-261001', pointId: 'P-D02', segmentId: 'RS-MAIN', originalSegmentId: 'RS-MAIN', status: '待巡检', completedAt: '', revision: 1, changedBy: '巡检班长', changedAt: '2026-10-01T07:30:00' },
+      { id: 'IA-S01', shiftId: 'SH-261001', pointId: 'P-S01', segmentId: 'RS-MAIN', originalSegmentId: 'RS-MAIN', status: '待巡检', completedAt: '', revision: 1, changedBy: '巡检班长', changedAt: '2026-10-01T07:30:00' },
+      { id: 'IA-W01', shiftId: 'SH-261001', pointId: 'P-W01', segmentId: 'RS-LAKE', originalSegmentId: 'RS-LAKE', status: '待巡检', completedAt: '', revision: 1, changedBy: '巡检班长', changedAt: '2026-10-01T07:30:00' },
+      { id: 'IA-R01', shiftId: 'SH-261001', pointId: 'P-R01', segmentId: 'RS-LAKE', originalSegmentId: 'RS-LAKE', status: '待巡检', completedAt: '', revision: 1, changedBy: '巡检班长', changedAt: '2026-10-01T07:30:00' }
+    ],
+    conflicts: [],
+    packages: []
+  },
   audit: [
     { id: 'A-1', entityId: 'P-D01', action: '生成异常', operator: '阈值引擎', detail: '累计位移18.7mm超过报警阈值16mm', createdAt: '2026-09-29T08:25:00' },
     { id: 'A-2', entityId: 'AN-260929-01', action: '提交现场复核', operator: '宋立', detail: '原始读数有效，位移趋势仍上升', createdAt: '2026-09-29T09:25:00' },

@@ -1,5 +1,11 @@
 import { createReducer, on } from '@ngrx/store'
 import type { Anomaly, AuditEntry, TailingsDataset } from '../domain'
+import {
+  applyDamTopClosure,
+  importOfflinePackage,
+  resolveAssignmentConflict,
+  restoreDamTopRoad
+} from '../domain'
 import { seedDataset } from '../data/seed'
 import { TailingsActions } from './tailings.actions'
 
@@ -7,6 +13,7 @@ export interface TailingsState {
   dataset: TailingsDataset
   loading: boolean
   error: string
+  inspectionError: string
   selectedAnomalyId: string
   keyword: string
   status: Anomaly['status'] | '全部'
@@ -16,6 +23,7 @@ export const initialTailingsState: TailingsState = {
   dataset: structuredClone(seedDataset),
   loading: false,
   error: '',
+  inspectionError: '',
   selectedAnomalyId: seedDataset.anomalies[0]?.id ?? '',
   keyword: '',
   status: '全部'
@@ -26,11 +34,40 @@ const audit = (entityId: string, action: string, operator: string, detail: strin
   id: `AUD-${Date.now()}-${idSeed++}`, entityId, action, operator, detail, createdAt: new Date().toISOString()
 })
 
+const withInspectionChange = (
+  state: TailingsState,
+  mutate: (dataset: TailingsDataset) => AuditEntry[]
+): TailingsState => {
+  try {
+    const dataset = structuredClone(state.dataset)
+    const entries = mutate(dataset)
+    dataset.audit.unshift(...entries)
+    return { ...state, dataset, inspectionError: '' }
+  } catch (error) {
+    return { ...state, inspectionError: error instanceof Error ? error.message : '巡检操作失败' }
+  }
+}
+
 export const tailingsReducer = createReducer(
   initialTailingsState,
   on(TailingsActions.loadDataset, (state) => ({ ...state, loading: true, error: '' })),
-  on(TailingsActions.loadDatasetSuccess, (state, { dataset }) => ({ ...state, dataset, loading: false, selectedAnomalyId: dataset.anomalies[0]?.id ?? '' })),
+  on(TailingsActions.loadDatasetSuccess, (state, { dataset }) => ({
+    ...state,
+    dataset,
+    loading: false,
+    inspectionError: '',
+    selectedAnomalyId: dataset.anomalies[0]?.id ?? ''
+  })),
   on(TailingsActions.loadDatasetFailure, (state, { error }) => ({ ...state, loading: false, error })),
+  on(TailingsActions.applyDamTopClosure, (state, { shiftId, operator }) =>
+    withInspectionChange(state, (dataset) => applyDamTopClosure(dataset, shiftId, operator))),
+  on(TailingsActions.restoreDamTopRoad, (state, { shiftId, operator }) =>
+    withInspectionChange(state, (dataset) => restoreDamTopRoad(dataset, shiftId, operator))),
+  on(TailingsActions.importOfflinePackage, (state, { syncPackage }) =>
+    withInspectionChange(state, (dataset) => importOfflinePackage(dataset, syncPackage))),
+  on(TailingsActions.resolveAssignmentConflict, (state, { conflictId, choice, operator }) =>
+    withInspectionChange(state, (dataset) => resolveAssignmentConflict(dataset, conflictId, choice, operator))),
+  on(TailingsActions.clearInspectionError, (state) => ({ ...state, inspectionError: '' })),
   on(TailingsActions.submitFieldReview, (state, { anomalyId, review }) => {
     const dataset = structuredClone(state.dataset)
     const anomaly = dataset.anomalies.find((item) => item.id === anomalyId)
